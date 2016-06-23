@@ -1,0 +1,311 @@
+/* ---------------Seccion de declaraciones preliminares--------------------*/
+package analizador;
+
+/* -------------Importaciones -------------  */
+import java.io.*;
+import java.lang.*;
+import java_cup.runtime.*;
+import java_cup.runtime.Symbol;
+import java.util.ArrayList;
+import java.util.*;
+
+action code{:
+void print(String msj)
+   {System.out.println(msj);}
+:}
+   
+/* Codigo del parser, se copia integramente a la clase final.
+    Agregamos el manejo de errores. */
+parser code {:
+ArrayList<Error1> ManejadorDeErrores;
+
+public Asintactico(java_cup.runtime.Scanner s,ArrayList<Error1> m) {super(s); ManejadorDeErrores =m; }
+
+public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{
+    report_error("No se encontró ;",s);
+
+}
+
+public void syntax_error(Symbol s){
+
+//report_error("Sintactico",s);
+}
+
+public void report_error(String message, Object info){
+    if(info!=null){
+        java_cup.runtime.Symbol s=(java_cup.runtime.Symbol)info;
+        String valor="";
+        if(s.value!=null){valor=s.value.toString();}
+        ManejadorDeErrores.add(new Error1(message,s.left,s.right,valor));
+    }else{
+        ManejadorDeErrores.add(new Error1(message,-1,-1,"?????"));
+    }
+}
+
+:};
+   
+  
+/* ------------Declaracion de simbolos terminales y no terminales---------- */
+   
+/* Terminales (tokens obtenidos por el analizador lexico).  
+
+   Terminales que no tienen un valor son listados primero, los terminales que
+   tienen un valor como los enteros son listados en la segunda o demas lineas. */
+
+terminal        DECLARE,CURLY_BR1,CURLY_BR2,BUILD,SEMICOLON_SIGN,ID,MAIN,ASSIG_OP,PARENTH1,PARENTH2,
+                NOT,AND_OP,OR_OP,EQUAL_OP,GREATER_EQUAL_OP,LESS_EQUAL_OP,NOT_EQUAL_OP,LESS_OP,GREATER_OP,
+                ADD_OP,SUBS_OP,STRING_WORD,INT_WORD,BOOLEAN_WORD,GROUP,NEW,COMMA_SIGN,MAX,MIN,NODE,FEATURES,
+                BRACKET1,BRACKET2,IF,ELSE,LOOP,READFEATVAL,TRUE,FALSE,READSTRING,GENERATEGROUP,PRINTGRAPH,
+                GETSIMILITUDE,GETFEATURES,ABSTRACTION,AFFABILITY,APPREHESION,ANXIETY,CARETOSTANDARDS,
+                DARE,DOMINANCE,HARDNESS,INDEPENDENCE,SELFCONTROL,SELFSUFFICIENCY,SENSITIVITY,SOCIABILITY,STABILITY,
+                STRESS,SURVEILLANCE,POINT_SIGN,ARRAYSTRING,PRINTLN,LIVELINESS,OPENNESSTOCHANGE,PERFECTIONISM,PRIVACY,
+                REASONING,ERRORLEX;
+terminal String STRING;
+terminal Integer NUM;
+
+/* No terminales usados en la seccion gramatical. 
+
+   Primero se lista los no terminales que tienen un valor Object y despues
+   se lista los no terminales que tienen un entero. Un Object se refiere a que
+   no tienen tipo, pudiendo ser entero o String. */
+
+non terminal Object BEGIN,STRUCTURE,DECLARE_BODY,BUILD_BODY,MAIN_BODY,DATA_TYPE,ASSIG,DEC,
+                    EXP,STRINGVAL,BOOLEANVAL,COND,OP_ARIT,OP_LOG,OP_REL,BODY,NODE_STR,ARRAYSTRING_STR,
+                    FEATURES_STR,CTRL_STR,GROUP_STR,MAXMIN,ARRAYVAL,FEATURESVAL,IF_STR,SENTEN,SENTENCES,INPUT,
+                    OUTPUT,FUNCT,LOOP_STR,READFEAT,READS,PLN,GNGROUP,PGPH,GSIMILITUDE,GFEATURES,FEATURE_WORD,
+                    STRINGVALAUX,INTVAL,EXPNUM,DECLARE_BODY2,DECLARE_BODY3,BODY2;
+ 
+precedence left AND_OP,OR_OP;
+precedence left EQUAL_OP,GREATER_EQUAL_OP,LESS_EQUAL_OP,NOT_EQUAL_OP,LESS_OP,GREATER_OP;
+precedence left ADD_OP, SUBS_OP;
+precedence left CURLY_BR1,CURLY_BR2;
+precedence left BRACKET1,BRACKET2;
+precedence left PARENTH1,PARENTH2;
+
+start with STRUCTURE;
+
+BEGIN ::= STRUCTURE;
+
+STRUCTURE ::= DECLARE CURLY_BR1 DECLARE_BODY  BUILD CURLY_BR1 BUILD_BODY  MAIN CURLY_BR1 MAIN_BODY 
+| DECLARE error:e CURLY_BR1 DECLARE_BODY  BUILD CURLY_BR1 BUILD_BODY  MAIN CURLY_BR1 MAIN_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Unexpected value after DECLARE. Line: "+(eleft+1)));:} 
+| DECLARE error:e  DECLARE_BODY  BUILD CURLY_BR1 BUILD_BODY  MAIN CURLY_BR1 MAIN_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected after DECLARE. Line: "+(eleft+1)));:} 
+| DECLARE CURLY_BR1 DECLARE_BODY  BUILD error:e CURLY_BR1 BUILD_BODY  MAIN CURLY_BR1 MAIN_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Unexpected value after BUILD. Line: "+(eleft+1)));:} 
+| DECLARE error CURLY_BR1 DECLARE_BODY  BUILD error:e CURLY_BR1 BUILD_BODY  MAIN CURLY_BR1 MAIN_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Unexpected value after BUILD. Line: "+(eleft+1)));:} 
+
+;
+
+/*----------------------GRAMATICAS DECLARE ---------------------*/
+
+DECLARE_BODY ::=  DATA_TYPE ASSIG EXP SEMICOLON_SIGN DECLARE_BODY | ASSIG  EXP SEMICOLON_SIGN DECLARE_BODY | DEC SEMICOLON_SIGN DECLARE_BODY | CURLY_BR2
+| DATA_TYPE ASSIG EXP error:e DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON (';') Missing. Line: "+(eleft+1)));:}
+| DATA_TYPE error:e EXP SEMICOLON_SIGN DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ASSIG('=') Missing. Line: "+(eleft+1)));:}
+| DATA_TYPE ASSIG error:e SEMICOLON_SIGN DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: EXPRESSION Missing. Line: "+(eleft+1)));:}
+| ASSIG  error:e SEMICOLON_SIGN DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  EXPRESSION Missing. Line: "+(eleft+1)));:}
+| DEC error:e DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  SEMICOLON (';') Missing. Line: "+(eleft+1)));:}
+| error:e SEMICOLON_SIGN DECLARE_BODY{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  EXPRESSION Missing. Line: "+(eleft+1)));:}
+|error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  CURLY('}') Missing. Line: "+(eleft+1)));:}
+;
+
+DECLARE_BODY2 ::= DATA_TYPE ASSIG EXP SEMICOLON_SIGN | DEC SEMICOLON_SIGN | ASSIG SEMICOLON_SIGN
+| DATA_TYPE ASSIG error:e SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: EXPRESSION Missing. Line: "+(eleft+1)));:}
+| DATA_TYPE error:e EXP SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ASSIG('=') Missing. Line: "+(eleft+1)));:}
+| error:e SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: EXPRESSION Missing. Line: "+(eleft+1)));:}
+
+;
+DECLARE_BODY3 ::= DATA_TYPE ASSIG EXP SEMICOLON_SIGN | DEC SEMICOLON_SIGN | ASSIG SEMICOLON_SIGN
+| DATA_TYPE ASSIG error:e SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: EXPRESSION Missing. Line: "+(eleft+1)));:}
+| DATA_TYPE error:e EXP SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ASSIG('=') Missing. Line: "+(eleft+1)));:}
+| error:e SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: EXPRESSION Missing. Line: "+(eleft+1)));:}
+
+;
+
+ASSIG ::= ID ASSIG_OP
+|ID error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  ASSIG('=') Missing. Line: "+(eleft+1)));:}
+|error:e ASSIG_OP{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  Identifier expected. Line: "+(eleft+1)));:}
+;
+
+
+DATA_TYPE ::= STRING_WORD | INT_WORD | BOOLEAN_WORD;
+
+
+
+EXP ::= NUM | STRINGVAL | BOOLEANVAL  |  COND | PARENTH1 EXP PARENTH2 | EXP OP_ARIT EXP
+|error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  EXPRESSION Missing PREUAB. Line: "+(eleft+1)));:}
+;
+
+STRINGVAL ::= STRINGVALAUX | STRINGVALAUX ADD_OP STRINGVAL
+|error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  VALUE Missing . Line: "+(eleft+1)));:}
+|STRINGVALAUX error:e STRINGVAL {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error:  OPERATOR('+') Missing . Line: "+(eleft+1)));:}
+; 
+
+STRINGVALAUX::= STRING | ID; 
+
+BOOLEANVAL ::= TRUE | FALSE | ID;
+
+OP_ARIT ::=  ADD_OP | SUBS_OP;
+
+OP_LOG ::= AND_OP | OR_OP;
+
+OP_REL ::= EQUAL_OP | GREATER_EQUAL_OP | LESS_EQUAL_OP | NOT_EQUAL_OP | LESS_OP | GREATER_OP;
+
+COND ::= BOOLEANVAL | COND OP_LOG COND | NOT COND | PARENTH1 COND PARENTH2 | EXPNUM OP_REL EXPNUM
+| error:e ID {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: clause condition expected . Line: "+(eleft+1)));:}
+| NOT error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: condition clause expected . Line: "+(eleft+1)));:}
+| error:e OP_LOG COND {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: condition clause expected . Line: "+(eleft+1)));:}
+| COND OP_LOG error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: condition clause expected . Line: "+(eleft+1)));:}
+| COND error:e COND {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Logic operator expected . Line: "+(eleft+1)));:}
+| error:e COND PARENTH2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| PARENTH1 COND error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+;
+
+EXPNUM ::= INTVAL | PARENTH1 EXPNUM PARENTH2 |INTVAL OP_ARIT INTVAL;
+
+INTVAL ::= ID | NUM; 
+
+DEC ::= DATA_TYPE ID
+|DATA_TYPE error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected . Line: "+(eleft+1)));:}
+|error:e ID {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Type Data expected . Line: "+(eleft+1)));:}
+;
+
+/*-----------------GRAMATICAAS BUILD ---------------------*/
+
+BUILD_BODY ::= NODE_STR BUILD_BODY| ARRAYSTRING_STR BUILD_BODY| FEATURES_STR BUILD_BODY |CURLY_BR2 
+|error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected ('}') after DECLARE. Line: "+(eleft+1)));:}
+;
+
+NODE_STR ::= NODE ID ASSIG_OP NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN
+|error:e ID ASSIG_OP NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Node type expected  before . Line: "+(eleft+1)));:}
+|NODE error:e ASSIG_OP NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line: "+(eleft+1)));:}
+|NODE ID error:e NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: ASSIG('=') Missing . Line: "+(eleft+1)));:}
+|NODE ID ASSIG_OP NEW NODE error:e ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: Left Parenthesis expected ('(') . Line: "+(eleft+1)));:}
+|NODE ID ASSIG_OP NEW NODE PARENTH1 ID error:e STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: COMMA_SIGN(',') Missing . Line: "+(eleft+1)));:}
+|NODE ID ASSIG_OP NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL error:e STRINGVAL PARENTH2 SEMICOLON_SIGN {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: COMMA_SIGN(',') Missing . Line: "+(eleft+1)));:}
+|NODE ID ASSIG_OP NEW NODE PARENTH1 ID COMMA_SIGN STRINGVAL COMMA_SIGN STRINGVAL PARENTH2 error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: SEMICOLON(';') Missing . Line: "+(eleft+1)));:}
+;
+
+ARRAYSTRING_STR ::=  ARRAYSTRING ID ASSIG_OP NEW BRACKET1 ARRAYVAL BRACKET2 SEMICOLON_SIGN
+|error:e ID ASSIG_OP NEW BRACKET1 ARRAYVAL BRACKET2 SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ARRAYSTRING type expected  before . Line: "+(eleft+1)));:}
+|ARRAYSTRING error:e ASSIG_OP NEW BRACKET1 ARRAYVAL BRACKET2 SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line: "+(eleft+1)));:}
+|ARRAYSTRING ID error:e NEW BRACKET1 ARRAYVAL BRACKET2 SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Syntax Error: ASSIG('=') Missing . Line: "+(eleft+1)));:}
+|ARRAYSTRING ID ASSIG_OP NEW error:e ARRAYVAL BRACKET2 SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Braket ('[')  . Line: "+(eleft+1)));:}
+|ARRAYSTRING ID ASSIG_OP NEW BRACKET1 error:e BRACKET2 SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ArrayList type expected  before  . Line: "+(eleft+1)));:}
+|ARRAYSTRING ID ASSIG_OP NEW BRACKET1 ARRAYVAL error:e SEMICOLON_SIGN{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Braket (']')  . Line: "+(eleft+1)));:}
+|ARRAYSTRING ID ASSIG_OP NEW BRACKET1 ARRAYVAL BRACKET2 error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+;
+
+ARRAYVAL ::= STRINGVAL  | STRINGVAL COMMA_SIGN ARRAYVAL;
+
+FEATURES_STR ::= FEATURES ID ASSIG_OP NEW FEATURES PARENTH1 FEATURESVAL PARENTH2 SEMICOLON_SIGN;
+
+FEATURESVAL ::= EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM COMMA_SIGN EXPNUM;
+
+/*-----------------GRAMATICAS MAIN, UY QUE MIEDO -------------------*/
+MAIN_BODY ::= DECLARE_BODY2 MAIN_BODY | BODY MAIN_BODY | CURLY_BR2 ; 
+
+BODY ::= CURLY_BR1 SENTENCES CURLY_BR2 | SENTEN
+| error:e SENTENCES CURLY_BR2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected ('{') after DECLARE. Line: "+(eleft+1)));:}
+| CURLY_BR1 SENTENCES error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected ('}') after DECLARE. Line: "+(eleft+1)));:}
+;
+
+BODY2 ::= CURLY_BR1 SENTENCES CURLY_BR2 | SENTEN
+| error:e SENTENCES CURLY_BR2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected ('{') after DECLARE. Line: "+(eleft+1)));:}
+| CURLY_BR1 SENTENCES error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Curly Bracket expected ('}') after DECLARE. Line: "+(eleft+1)));:}
+;
+
+SENTENCES ::= SENTEN | SENTENCES SENTEN;
+
+SENTEN ::= CTRL_STR | DECLARE_BODY3 | INPUT | OUTPUT | FUNCT | GROUP_STR
+| error:e {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SENTENCE expected . Line: "+(eleft+1)));:}
+;
+
+GROUP_STR ::= GROUP ID ASSIG_OP NEW GROUP PARENTH1 ID COMMA_SIGN MAXMIN COMMA_SIGN ID PARENTH2 SEMICOLON_SIGN
+
+
+
+; 
+
+MAXMIN ::= MAX | MIN;
+
+/***ENTRADA*****/
+
+INPUT ::= READFEAT SEMICOLON_SIGN | READS SEMICOLON_SIGN
+|READFEAT error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+|READS error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+;
+
+READFEAT ::= READFEATVAL PARENTH1 INTVAL PARENTH2;
+
+READS ::= READSTRING PARENTH1 STRINGVAL PARENTH2
+| READSTRING error:e STRINGVAL PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| READSTRING PARENTH1 STRINGVAL error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| READSTRING PARENTH1 error:e PARENTH2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: STRINGVAL type expected  before . Line: "+(eleft+1)));:}
+;
+
+/***SALIDA****/
+
+OUTPUT ::= PLN SEMICOLON_SIGN | GNGROUP SEMICOLON_SIGN | PGPH SEMICOLON_SIGN
+|PLN error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+|GNGROUP error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+|PGPH error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+;
+
+PLN ::= PRINTLN PARENTH1 STRINGVAL PARENTH2
+| PRINTLN error:e STRINGVAL PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| PRINTLN PARENTH1 STRINGVAL error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| PRINTLN PARENTH1 error:e PARENTH2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: STRINGVAL type expected  before . Line: "+(eleft+1)));:}
+;
+
+GNGROUP ::= GENERATEGROUP PARENTH1 ID PARENTH2
+| GENERATEGROUP error:e ID PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| GENERATEGROUP PARENTH1 ID error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| GENERATEGROUP PARENTH1 error:e PARENTH2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line:"+(eleft+1)));:}
+;
+
+PGPH ::= PRINTGRAPH PARENTH1 ID PARENTH2
+| PRINTGRAPH error:e ID PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| PRINTGRAPH PARENTH1 ID error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| PRINTGRAPH PARENTH1 error:e PARENTH2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line:"+(eleft+1)));:}
+;
+
+/****FUNCIONES****/
+
+FUNCT ::= GSIMILITUDE SEMICOLON_SIGN |  GFEATURES SEMICOLON_SIGN
+|GSIMILITUDE error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+|GFEATURES error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: SEMICOLON(';') Missing  . Line: "+(eleft+1)));:}
+;
+
+GSIMILITUDE ::= GETSIMILITUDE PARENTH1 ID COMMA_SIGN ID PARENTH2
+| GETSIMILITUDE error:e ID COMMA_SIGN ID PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| GETSIMILITUDE PARENTH1 ID COMMA_SIGN ID error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| GETSIMILITUDE PARENTH1 error:e COMMA_SIGN ID PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line:"+(eleft+1)));:}
+| GETSIMILITUDE PARENTH1 ID COMMA_SIGN error:e PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line:"+(eleft+1)));:}
+| GETSIMILITUDE PARENTH1 ID error:e ID PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: COMMA_SIGN(',') Missing. Line:"+(eleft+1)));:}
+;
+
+GFEATURES ::= GETFEATURES PARENTH1 ID POINT_SIGN FEATURE_WORD PARENTH2
+| GETFEATURES error:e ID POINT_SIGN FEATURE_WORD PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| GETFEATURES PARENTH1 ID POINT_SIGN FEATURE_WORD error:e{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+| GETFEATURES PARENTH1 error:e POINT_SIGN FEATURE_WORD PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: ID expected  before . Line:"+(eleft+1)));:}
+| GETFEATURES PARENTH1 ID error:e FEATURE_WORD PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: POINT SIGN Missing  . Line:"+(eleft+1)));:}
+| GETFEATURES PARENTH1 ID POINT_SIGN error:e PARENTH2{:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: FEATURE WORD expected. Line:"+(eleft+1)));:}
+;
+
+FEATURE_WORD ::= ABSTRACTION | AFFABILITY | APPREHESION | ANXIETY | CARETOSTANDARDS | DARE | DOMINANCE | HARDNESS | INDEPENDENCE | LIVELINESS | OPENNESSTOCHANGE | PERFECTIONISM | PRIVACY | REASONING | SELFCONTROL | SELFSUFFICIENCY | SENSITIVITY | SOCIABILITY | STABILITY | STRESS | SURVEILLANCE;
+
+/****CONTROL****/
+
+CTRL_STR ::= IF_STR | LOOP_STR;
+
+IF_STR ::= IF PARENTH1 COND PARENTH2 BODY2 | IF PARENTH1 COND PARENTH2 BODY2 ELSE 
+| IF error:e COND PARENTH2 BODY2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| IF PARENTH1 COND error:e BODY2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+; /* FALTA ELSE */
+
+LOOP_STR ::= LOOP PARENTH1 COND PARENTH2 BODY2
+| LOOP error:e COND PARENTH2 BODY2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Left Parenthesis expected ('('). Line: "+(eleft+1)));:}
+| LOOP PARENTH1 COND error:e BODY2 {:parser.ManejadorDeErrores.add(new Error1("ES",eleft-1,eright,"Syntax Error: Right Parenthesis expected (')'). Line: "+(eleft+1)));:}
+;
+
+ 
+
+
